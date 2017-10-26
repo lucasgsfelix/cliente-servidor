@@ -22,7 +22,7 @@ def trataArquivo(caminho):
 def interpretaMensagem(mensagemCliente):
 	mensagemCliente = mensagemCliente.split('\n')
 	if(mensagemCliente[0] == "GET / HTTP/1.1\r"): #envio todos os arquivos que estão no caminho, só dando uma olhada
-		return os.listdir("/home/lucasfelix/Servidor"), None
+		return os.listdir(caminho), None
 	else: #tá querendo um arquivo
 		msg = mensagemCliente[0]
 		arquivoRequisitado = []
@@ -33,8 +33,13 @@ def interpretaMensagem(mensagemCliente):
 			i=i+1
 		arquivoRequisitado = ''.join(arquivoRequisitado)
 		extensao = avaliaExtensao(arquivoRequisitado)
-		if(arquivoRequisitado!="/favicon.ico"):file = "/home/lucasfelix/Servidor" + arquivoRequisitado
-		else:file = "/home/lucasfelix/Servidor/"
+		if(arquivoRequisitado!="/favicon.ico"):
+			if(caminho[len(caminho)-1]=='/'):
+				file = caminho + arquivoRequisitado
+			else:
+				file = caminho + '/' + arquivoRequisitado
+		else:
+			file = caminho
 		v = os.path.exists(file)
 
 		if(v==True): #envio o arquivo que foi requisitado
@@ -65,13 +70,12 @@ def enviaMensagem(resposta, con, extensao):
 		con.send(resposta)
 		resposta.flush()
 
-def conecta(porta):
+def conecta(porta, caminho):
 
 	tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	ipPorta = (ipServidor, int(porta))
 	tcp.bind(ipPorta)
 	tcp.listen(5) #ouve as conexões feitas no socket, parametro é o número máximo de conexões permitidas
-	caminho = "/home/lucasfelix/Servidor"
 	print "SERVIDOR INICIADO..."
 	while (1):
 		con, cliente = tcp.accept() #irá aceitar os clientes que tentarem se conectar
@@ -80,7 +84,7 @@ def conecta(porta):
 			print "CONECTADO PELO CLIENTE", cliente
 			while (1):
 				mensagemCliente = con.recv(tamanhoBufferRecebimento)
-				resposta, extensao = interpretaMensagem(mensagemCliente)
+				resposta, extensao = interpretaMensagem(mensagemCliente, caminho)
 				enviaMensagem(resposta, con, extensao)
 				#analisar para mandar a mensagem de volta
 				if not mensagemCliente: break
@@ -88,8 +92,11 @@ def conecta(porta):
 		else:
 			con.close()
 
-try:
-	porta = sys.argv[1] #porta que será utilizada
-except:
-	porta = 8080
-conecta(porta)
+if __name__ == "__main__":
+
+	caminho = sys.argv[1]
+	try:
+		porta = sys.argv[2] #porta que será utilizada
+	except:
+		porta = 8080
+	conecta(porta, caminho)
