@@ -41,26 +41,30 @@ def analiseLexica(resposta):
 
 def retiraCabecalho(resposta):
 	i=0
-	p = resposta.index('Content-Type:')
-	while(1):
-		if(resposta[p]=='\n'):
+	try:
+		p = resposta.index('Content-Type:')
+		while(1):
+			if(resposta[p]=='\n'):
+				p=p+1
+				break
+			i=0
 			p=p+1
-			break
 		i=0
+		cabecalho = []
+		while(i<p):
+			cabecalho.append(resposta[i]) #cabecalho
+			i=i+1
+		cabecalho = ''.join(cabecalho)
+		i=0
+		rFinal = []
 		p=p+1
-	i=0
-	cabecalho = []
-	while(i<p):
-		cabecalho.append(resposta[i]) #cabecalho
-		i=i+1
-	cabecalho = ''.join(cabecalho)
-	i=0
-	rFinal = []
-	p=p+2
-	while(p<len(resposta)):
-		rFinal.append(resposta[p])
-		p=p+1
-	return ''.join(rFinal)
+		while(p<len(resposta)):
+			rFinal.append(resposta[p])
+			p=p+1
+		return ''.join(rFinal)
+	except:
+		return resposta
+	
 def defineNome(diretorioBuscado):
 	extensoes = ['.txt', '.mp3', '.pdf', '.html'] #adiciona extensões possíveis de serem impressas
 	i=0
@@ -91,7 +95,7 @@ def conectaServidor(url, porta, diretorioBuscado):
 
 	ipSite	= socket.gethostbyname(url) #agora temos o ip do site
 	tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	ipPorta = (url, porta)
+	ipPorta = (url, int(porta))
 	tcp.connect(ipPorta)
 	if(len(diretorioBuscado)==0):
 		tcp.send("GET / HTTP/1.1\nHost: "+url+"\nConnection: close\nUser-agent: Mozilla/5.0\n\n")
