@@ -6,9 +6,10 @@ import re
 import sys
 import os
 import mimetypes
+import defineHTML
 
-#ipServidor = '192.168.54.17'
-ipServidor = '172.18.2.218'
+ipServidor = '192.168.54.17'
+#ipServidor = '172.18.2.218'
 tamanhoBufferEnvio = 5124
 tamanhoBufferRecebimento = 1024
 def trataArquivo(caminho):
@@ -19,10 +20,14 @@ def trataArquivo(caminho):
 	except:
 		return caminho
 
-def interpretaMensagem(mensagemCliente):
+def interpretaMensagem(mensagemCliente, caminho):
 	mensagemCliente = mensagemCliente.split('\n')
 	if(mensagemCliente[0] == "GET / HTTP/1.1\r"): #envio todos os arquivos que estão no caminho, só dando uma olhada
-		return os.listdir(caminho), None
+		try:
+			return os.listdir(caminho), None
+		except:
+			print "\nCaminho específicado pelo usuário é inexistente!\n"
+			return "HTTP/1.1 404 NOT FOUND", None
 	else: #tá querendo um arquivo
 		msg = mensagemCliente[0]
 		arquivoRequisitado = []
@@ -34,10 +39,8 @@ def interpretaMensagem(mensagemCliente):
 		arquivoRequisitado = ''.join(arquivoRequisitado)
 		extensao = avaliaExtensao(arquivoRequisitado)
 		if(arquivoRequisitado!="/favicon.ico"):
-			if(caminho[len(caminho)-1]=='/'):
-				file = caminho + arquivoRequisitado
-			else:
-				file = caminho + '/' + arquivoRequisitado
+			file = caminho + arquivoRequisitado
+			
 		else:
 			file = caminho
 		v = os.path.exists(file)
@@ -57,18 +60,23 @@ def avaliaExtensao(resposta):
 def enviaMensagem(resposta, con, extensao):
 	
 	if(resposta!="HTTP/1.1 404 NOT FOUND") and (extensao!=None): 
-		con.send("HTTP/1.1 200 OK\nContent-Type: "+extensao+"\n\n")		
+		con.send("HTTP/1.1 200 OK\nContent-Type: "+extensao+"\n\n")	
+		con.send(resposta)
+		con.close()	
+	
 	elif(type(resposta)==list):
 		con.send("HTTP/1.1 200 OK\nContent-Type: Text\n\n")
 		i=0
-		con.send("\nOs arquivos disponíveis são: \n")
+		con.send("Os arquivos disponíveis são: \n")
 		while(i<len(resposta)):
-			con.send(resposta[i]) #envio agora o arquivo
-			resposta[i].flush()
+			resposta[i] = resposta[i] + '\n'
 			i=i+1
+		
+		con.send(''.join(resposta)) #envio agora o arquivo
+		con.close()
 	else:
 		con.send(resposta)
-		resposta.flush()
+		con.close()
 
 def conecta(porta, caminho):
 
@@ -93,10 +101,15 @@ def conecta(porta, caminho):
 			con.close()
 
 if __name__ == "__main__":
-
-	caminho = sys.argv[1]
+	try:
+		caminho = sys.argv[1]
+	except:
+		print "VOCÊ PRECISA ESPECIFICAR UM CAMINHO PARA QUE O MESMO SEJA ACESSADO ! \n"
+		exit()
 	try:
 		porta = sys.argv[2] #porta que será utilizada
 	except:
 		porta = 8080
+	if(caminho[len(caminho)-1]!='/'):
+		caminho = caminho + '/'
 	conecta(porta, caminho)
